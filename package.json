@@ -1,0 +1,17 @@
+{
+  "name": "ipa-share-vercel",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build required'",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@vercel/blob": "^0.15.1",
+    "formidable": "^3.5.1"
+  },
+  "devDependencies": {
+    "vercel": "^32.5.0"
+  }
+}

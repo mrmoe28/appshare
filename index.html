@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS App Installer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .result a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        
+        .result a:hover {
+            text-decoration: underline;
+        }
+        
+        .qr-code {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 20px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 iOS App Installer</h1>
+        
+        <form id="uploadForm">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📱</div>
+                <p>Click to select or drag and drop your .ipa file here</p>
+                <input type="file" id="ipaFile" name="ipa" accept=".ipa" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="appName">App Name</label>
+                <input type="text" id="appName" name="appName" placeholder="My App" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="bundleId">Bundle ID</label>
+                <input type="text" id="bundleId" name="bundleId" placeholder="com.example.myapp" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="version">Version</label>
+                <input type="text" id="version" name="version" placeholder="1.0.0" value="1.0.0" required>
+            </div>
+            
+            <button type="submit" id="uploadBtn">Upload & Generate Install Link</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <p>⏳ Uploading and processing your app...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h2>✅ Your app is ready!</h2>
+            <p><strong>App Name:</strong> <span id="resultAppName"></span></p>
+            <p><strong>Bundle ID:</strong> <span id="resultBundleId"></span></p>
+            <p><strong>Version:</strong> <span id="resultVersion"></span></p>
+            <p style="margin-top: 15px;">
+                <a href="#" id="installLink" target="_blank">📲 Install on iOS Device</a>
+            </p>
+            <div class="qr-code" id="qrCode"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('ipaFile');
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const result = document.getElementById('result');
+
+        // File upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                updateUploadAreaText();
+            }
+        });
+
+        fileInput.addEventListener('change', updateUploadAreaText);
+
+        function updateUploadAreaText() {
+            if (fileInput.files.length > 0) {
+                uploadArea.innerHTML = `
+                    <div class="upload-icon">✅</div>
+                    <p>${fileInput.files[0].name}</p>
+                    <p style="font-size: 12px; color: #666;">Click to change file</p>
+                `;
+            }
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!fileInput.files.length) {
+                showError('Please select an IPA file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('ipa', fileInput.files[0]);
+            formData.append('appName', document.getElementById('appName').value);
+            formData.append('bundleId', document.getElementById('bundleId').value);
+            formData.append('version', document.getElementById('version').value);
+
+            uploadBtn.disabled = true;
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+
+                // Display results
+                document.getElementById('resultAppName').textContent = data.appName;
+                document.getElementById('resultBundleId').textContent = data.bundleId;
+                document.getElementById('resultVersion').textContent = data.version;
+                
+                const installLink = document.getElementById('installLink');
+                installLink.href = data.installLink;
+                
+                // Generate QR code
+                const qrCode = document.getElementById('qrCode');
+                qrCode.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data.installLink)}&size=200x200" alt="QR Code">`;
+                
+                result.style.display = 'block';
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                uploadBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            error.textContent = `❌ ${message}`;
+            error.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
